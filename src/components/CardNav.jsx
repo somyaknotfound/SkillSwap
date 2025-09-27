@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { GoArrowUpRight } from 'react-icons/go';
 import './CardNav.css';
@@ -148,17 +149,17 @@ const CardNav = ({
             <div className="hamburger-line" />
           </div>
 
-          <div className="logo-container" href="">
-            <a href='/home'><img src={logo} alt={logoAlt} className="logo" /></a>
+          <div className="logo-container">
+            <Link to="/"><img src={logo} alt={logoAlt} className="logo" /></Link>
           </div>
 
-          <button
-            type="button"
+          <Link
+            to="/marketplace"
             className="card-nav-cta-button"
             style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
           >
-           <a href='/login'> Get Started</a>
-          </button>
+            Get Started
+          </Link>
         </div>
 
         <div className="card-nav-content" aria-hidden={!isExpanded}>
@@ -172,10 +173,17 @@ const CardNav = ({
               <div className="nav-card-label">{item.label}</div>
               <div className="nav-card-links">
                 {item.links?.map((lnk, i) => (
-                  <a key={`${lnk.label}-${i}`} className="nav-card-link" href={lnk.href} aria-label={lnk.ariaLabel}>
-                    <GoArrowUpRight className="nav-card-link-icon" aria-hidden="true" />
-                    {lnk.label}
-                  </a>
+                  lnk.onClick ? (
+                    <button key={`${lnk.label}-${i}`} className="nav-card-link" onClick={lnk.onClick} aria-label={lnk.ariaLabel}>
+                      <GoArrowUpRight className="nav-card-link-icon" aria-hidden="true" />
+                      {lnk.label}
+                    </button>
+                  ) : (
+                    <Link key={`${lnk.label}-${i}`} className="nav-card-link" to={lnk.href} aria-label={lnk.ariaLabel}>
+                      <GoArrowUpRight className="nav-card-link-icon" aria-hidden="true" />
+                      {lnk.label}
+                    </Link>
+                  )
                 ))}
               </div>
             </div>

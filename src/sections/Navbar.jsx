@@ -1,14 +1,26 @@
 import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import CardNav from '../components/CardNav';
 
 const Navbar = () => {
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   const items = [
     {
       label: "Marketplace",
       bgColor: "#0D0716",
       textColor: "#fff",
       links: [
-        { label: "Marketplace", href: "/marketplace", ariaLabel: "Marketplace" }
+        { label: "Browse Skills", href: "/marketplace", ariaLabel: "Browse Skills" },
+        { label: "Categories", href: "/marketplace#categories", ariaLabel: "Categories" },
+        { label: "Top Rated", href: "/marketplace#top-rated", ariaLabel: "Top Rated" }
       ]
     },
     {
@@ -16,19 +28,23 @@ const Navbar = () => {
       bgColor: "#170D27",
       textColor: "#fff",
       links: [
-        { label: "Leaderboard All-Time", href: "/Leaderboard", ariaLabel: "Leaderboard" },
-        { label: "Leaderboard Monthly", href: "/Leaderboard/monthly", ariaLabel: "Leaderboard Monthly" },
-        { label: "Leaderboard Weekly", href: "/Leaderboard/weekly", ariaLabel: "Leaderboard Weekly" }
+        { label: "All-Time", href: "/leaderboard", ariaLabel: "All-Time Leaderboard" },
+        { label: "Monthly", href: "/leaderboard/monthly", ariaLabel: "Monthly Leaderboard" },
+        { label: "Weekly", href: "/leaderboard/weekly", ariaLabel: "Weekly Leaderboard" }
       ]
     },
     {
-      label: "My Skills",
-      bgColor: "#271E37", 
+      label: isAuthenticated ? "My Skills" : "Account",
+      bgColor: "#271E37",
       textColor: "#fff",
-      links: [
-        { label: "My Skills", href: "/myskills", ariaLabel: "My Skills" },
-        { label: "Teaching", href: "/myskills/teaching", ariaLabel: "Teaching" },
-        { label: "Learning", href: "/myskills/learning", ariaLabel: "Learning" }
+      links: isAuthenticated ? [
+        { label: "My Learning", href: "/my-skills", ariaLabel: "My Learning" },
+        { label: "Teaching", href: "/teaching", ariaLabel: "Teaching" },
+        { label: "Progress", href: "/progress", ariaLabel: "Progress" },
+        { label: "Logout", href: "#", ariaLabel: "Logout", onClick: handleLogout }
+      ] : [
+        { label: "Login", href: "/login", ariaLabel: "Login" },
+        { label: "Sign Up", href: "/signup", ariaLabel: "Sign Up" }
       ]
     }
   ];
