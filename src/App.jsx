@@ -24,6 +24,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/skill/:skillId" element={<SkillDetail />} />
+            <Route path="/course/:skillId" element={<SkillDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/auth/callback" element={<AuthCallback />} />

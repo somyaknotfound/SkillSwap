@@ -105,7 +105,7 @@ const Marketplace = () => {
               <div className="loading-message">Loading courses...</div>
             ) : filteredCourses.length > 0 ? (
               filteredCourses.map(course => (
-              <Link key={course._id} to={`/skill/${course._id}`} className="skill-card-link">
+              <Link key={course._id} to={`/course/${course._id}`} className="skill-card-link">
                 <div className="skill-card">
                   <div className="skill-image">
                     <img src={course.image || 'https://via.placeholder.com/400x300?text=Course'} alt={course.title} />
@@ -123,7 +123,7 @@ const Marketplace = () => {
                       </div>
                       <div className="stat">
                         <Users size={16} />
-                        <span>{course.enrolledStudents?.length || 0}</span>
+                        <span>{course.enrollmentCount || 0}</span>
                       </div>
                       <div className="stat">
                         <Clock size={16} />
