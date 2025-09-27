@@ -132,7 +132,7 @@ const Marketplace = () => {
                     </div>
 
                     <div className="skill-footer">
-                      <div className="skill-price">${course.price}</div>
+                      <div className="skill-price">{course.price} credits</div>
                       <button className="enroll-btn" onClick={(e) => e.preventDefault()}>View Details</button>
                     </div>
                   </div>

@@ -295,6 +295,58 @@
   color: #0369a1;
 }
 
+/* Discount Pricing Styles */
+.pricing-with-discount {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.original-price {
+  font-size: 1.25rem;
+  color: #6b7280;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.discounted-price {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #059669;
+  display: block;
+}
+
+.discount-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.discount-badge {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.discount-percentage {
+  font-size: 0.875rem;
+  color: #059669;
+  font-weight: 600;
+}
+
+.standard-pricing {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .action-buttons {
   display: flex;
   flex-direction: column;

@@ -275,8 +275,27 @@ const SkillDetail = () => {
 
               <div className="skill-actions">
                 <div className="price-section">
-                  <span className="price">${skill.price}</span>
-                  <span className="price-label">One-time payment</span>
+                  {isCourse && user && user.badge_level && user.badge_level !== 'Bronze' ? (
+                    <div className="pricing-with-discount">
+                      <div className="original-price">{skill.price} credits</div>
+                      <div className="discounted-price">
+                        {Math.max(1, Math.floor(skill.price * (1 - (user.badge_level === 'Silver' ? 5 : user.badge_level === 'Gold' ? 10 : user.badge_level === 'Platinum' ? 15 : user.badge_level === 'Diamond' ? 20 : user.badge_level === 'Master' ? 25 : 30) / 100)))} credits
+                      </div>
+                      <div className="discount-info">
+                        <span className="discount-badge">
+                          {user.badge_level} {user.badge_tier === 1 ? 'I' : user.badge_tier === 2 ? 'II' : 'III'} Discount
+                        </span>
+                        <span className="discount-percentage">
+                          {user.badge_level === 'Silver' ? 5 : user.badge_level === 'Gold' ? 10 : user.badge_level === 'Platinum' ? 15 : user.badge_level === 'Diamond' ? 20 : user.badge_level === 'Master' ? 25 : 30}% off
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="standard-pricing">
+                      <span className="price">{skill.price} credits</span>
+                      <span className="price-label">One-time payment</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="action-buttons">

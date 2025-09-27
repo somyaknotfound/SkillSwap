@@ -1,0 +1,233 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(135deg, var(--badge-color), color-mix(in srgb, var(--badge-color) 80%, white));
+  border: 2px solid var(--badge-color);
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.badge:hover::before {
+  left: 100%;
+}
+
+.badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.badge-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-icon {
+  width: 1.2em;
+  height: 1.2em;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.badge-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.badge-level {
+  font-size: 0.9em;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.badge-tier {
+  font-size: 0.7em;
+  font-weight: 500;
+  opacity: 0.9;
+  margin-top: 0.1em;
+}
+
+/* Size variants */
+.badge.small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  gap: 0.25rem;
+}
+
+.badge.small .badge-icon {
+  width: 1em;
+  height: 1em;
+}
+
+.badge.small .badge-text {
+  gap: 0.05em;
+}
+
+.badge.large {
+  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  gap: 0.75rem;
+}
+
+.badge.large .badge-icon {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+.badge.large .badge-text {
+  gap: 0.2em;
+}
+
+/* Tooltip */
+.badge-tooltip-container {
+  position: relative;
+  display: inline-block;
+}
+
+.badge-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a1a;
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  min-width: 250px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  margin-bottom: 0.5rem;
+}
+
+.badge-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1a1a1a;
+}
+
+.badge-tooltip-container:hover .badge-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #333;
+}
+
+.tooltip-title {
+  font-weight: 700;
+  font-size: 1.1em;
+  color: var(--badge-color);
+}
+
+.tooltip-discount {
+  background: var(--badge-color);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.tooltip-body p {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9em;
+  line-height: 1.4;
+  color: #ccc;
+}
+
+.tooltip-stats {
+  display: flex;
+  gap: 1rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.8em;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--badge-color);
+}
+
+/* Special effects for different levels */
+.badge[data-level="Legend"] {
+  animation: legendGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes legendGlow {
+  from {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 10px var(--badge-color);
+  }
+  to {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 0 20px var(--badge-color);
+  }
+}
+
+.badge[data-level="Master"] {
+  animation: masterPulse 3s ease-in-out infinite;
+}
+
+@keyframes masterPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .badge-tooltip {
+    min-width: 200px;
+    font-size: 0.9em;
+  }
+  
+  .tooltip-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

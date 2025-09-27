@@ -165,6 +165,32 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  // Credits and Badges System
+  credits: {
+    type: Number,
+    default: 0,
+    min: [0, 'Credits cannot be negative']
+  },
+  performance_points: {
+    type: Number,
+    default: 0,
+    min: [0, 'Performance points cannot be negative']
+  },
+  badge_level: {
+    type: String,
+    enum: ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master', 'Legend'],
+    default: 'Bronze'
+  },
+  badge_tier: {
+    type: Number,
+    default: 3,
+    min: [1, 'Badge tier must be at least 1'],
+    max: [3, 'Badge tier cannot exceed 3']
+  },
+  lastActivity: {
+    type: Date,
+    default: Date.now
   }
 }, {
   timestamps: true,
@@ -184,6 +210,28 @@ userSchema.virtual('fullName').get(function() {
 userSchema.virtual('averageRating').get(function() {
   if (this.totalRatings === 0) return 0;
   return this.rating / this.totalRatings;
+});
+
+// Virtual for badge discount percentage
+userSchema.virtual('badgeDiscount').get(function() {
+  const levelDiscounts = {
+    'Bronze': 0,
+    'Silver': 5,
+    'Gold': 10,
+    'Platinum': 15,
+    'Diamond': 20,
+    'Master': 25,
+    'Legend': 30
+  };
+  
+  const tierMultiplier = this.badge_tier === 1 ? 1.5 : this.badge_tier === 2 ? 1.25 : 1;
+  return Math.min(levelDiscounts[this.badge_level] * tierMultiplier, 50); // Max 50% discount
+});
+
+// Virtual for badge display name
+userSchema.virtual('badgeDisplayName').get(function() {
+  const tierNames = { 1: 'I', 2: 'II', 3: 'III' };
+  return `${this.badge_level} ${tierNames[this.badge_tier]}`;
 });
 
 // Index for better query performance (only non-unique indexes)
@@ -230,6 +278,70 @@ userSchema.statics.findByEmailOrUsername = function(identifier) {
       { username: identifier }
     ]
   });
+};
+
+// Instance method to add performance points and check for badge upgrade
+userSchema.methods.addPerformancePoints = async function(points) {
+  this.performance_points += points;
+  this.lastActivity = new Date();
+  
+  // Check for badge upgrade
+  await this.checkBadgeUpgrade();
+  
+  return this.save();
+};
+
+// Instance method to check and upgrade badge
+userSchema.methods.checkBadgeUpgrade = async function() {
+  const thresholds = {
+    'Bronze': { 1: 0, 2: 100, 3: 250 },
+    'Silver': { 1: 500, 2: 750, 3: 1000 },
+    'Gold': { 1: 1500, 2: 2000, 3: 2500 },
+    'Platinum': { 1: 3500, 2: 4500, 3: 5500 },
+    'Diamond': { 1: 7000, 2: 9000, 3: 11000 },
+    'Master': { 1: 14000, 2: 18000, 3: 22000 },
+    'Legend': { 1: 30000, 2: 40000, 3: 50000 }
+  };
+  
+  const levels = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master', 'Legend'];
+  const currentLevelIndex = levels.indexOf(this.badge_level);
+  
+  // Check if we can upgrade to next tier
+  if (this.badge_tier < 3) {
+    const nextTierThreshold = thresholds[this.badge_level][this.badge_tier + 1];
+    if (this.performance_points >= nextTierThreshold) {
+      this.badge_tier += 1;
+      return true;
+    }
+  }
+  
+  // Check if we can upgrade to next level
+  if (currentLevelIndex < levels.length - 1) {
+    const nextLevel = levels[currentLevelIndex + 1];
+    const nextLevelThreshold = thresholds[nextLevel][1];
+    if (this.performance_points >= nextLevelThreshold) {
+      this.badge_level = nextLevel;
+      this.badge_tier = 1;
+      return true;
+    }
+  }
+  
+  return false;
+};
+
+// Instance method to deduct credits
+userSchema.methods.deductCredits = async function(amount) {
+  if (this.credits < amount) {
+    throw new Error('Insufficient credits');
+  }
+  this.credits -= amount;
+  return this.save();
+};
+
+// Instance method to add credits
+userSchema.methods.addCredits = async function(amount) {
+  this.credits += amount;
+  return this.save();
 };
 
 module.exports = mongoose.model('User', userSchema);
