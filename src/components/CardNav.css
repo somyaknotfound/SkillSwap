@@ -1,11 +1,11 @@
 .card-nav-container {
-  position: absolute;
-  top: 2em;
+  position: fixed;
+  top: 1rem;
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
   max-width: 800px;
-  z-index: 99;
+  z-index: 1000;
   box-sizing: border-box;
 }
 
@@ -151,6 +151,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  background: none;
+  border: none;
+  color: inherit;
 }
 
 .nav-card-link:hover {
@@ -159,8 +162,8 @@
 
 @media (max-width: 768px) {
   .card-nav-container {
-    width: 90%;
-    top: 1.2em;
+    width: 95%;
+    top: 0.5rem;
   }
 
   .card-nav-top {
