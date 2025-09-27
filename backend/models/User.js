@@ -183,7 +183,7 @@ userSchema.virtual('fullName').get(function() {
 // Virtual for average rating
 userSchema.virtual('averageRating').get(function() {
   if (this.totalRatings === 0) return 0;
-  return (this.rating / this.totalRatings).toFixed(1);
+  return this.rating / this.totalRatings;
 });
 
 // Index for better query performance (only non-unique indexes)

@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { User, BookOpen, Users, Award, Clock, Star, TrendingUp, Plus, Edit, Trash2, X, Save, Search } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './MyProfile.css';
 
 const MyProfile = () => {
   const [activeTab, setActiveTab] = useState('my-skills');
   const { user, token } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [skills, setSkills] = useState([]);
   const [courses, setCourses] = useState([]);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [availableCourses, setAvailableCourses] = useState([]);
+  const [learningStats, setLearningStats] = useState({
+    activeCourses: 0,
+    learningHours: 0,
+    certificates: 0
+  });
   
   // Use real user data or fallback to default
   const userProfile = user || {
@@ -110,6 +116,19 @@ const MyProfile = () => {
         if (coursesData.success) {
           setCourses(coursesData.teachingCourses);
           setEnrolledCourses(coursesData.enrolledCourses);
+          
+          // Calculate learning stats
+          const activeCourses = coursesData.enrolledCourses.length;
+          const learningHours = coursesData.enrolledCourses.reduce((total, course) => {
+            return total + (course.duration?.totalHours || 0);
+          }, 0);
+          const certificates = coursesData.enrolledCourses.filter(course => course.completed).length;
+          
+          setLearningStats({
+            activeCourses,
+            learningHours,
+            certificates
+          });
         }
 
         // Fetch all available courses
@@ -268,11 +287,42 @@ const MyProfile = () => {
       
       if (data.success) {
         alert('Successfully enrolled in course!');
-        // Refresh the available courses to update enrollment status
-        const availableCoursesResponse = await fetch('http://localhost:5000/api/courses');
-        const availableCoursesData = await availableCoursesResponse.json();
-        if (availableCoursesData.success) {
-          setAvailableCourses(availableCoursesData.courses);
+        
+        // Refresh all data to show updated information
+        try {
+          // Refresh user's enrolled courses
+          const coursesResponse = await fetch('http://localhost:5000/api/courses/my', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+        const coursesData = await coursesResponse.json();
+        if (coursesData.success) {
+          setEnrolledCourses(coursesData.enrolledCourses);
+          setCourses(coursesData.teachingCourses);
+          
+          // Calculate learning stats
+          const activeCourses = coursesData.enrolledCourses.length;
+          const learningHours = coursesData.enrolledCourses.reduce((total, course) => {
+            return total + (course.duration?.totalHours || 0);
+          }, 0);
+          const certificates = coursesData.enrolledCourses.filter(course => course.completed).length;
+          
+          setLearningStats({
+            activeCourses,
+            learningHours,
+            certificates
+          });
+        }
+          
+          // Refresh available courses to update enrollment status
+          const availableCoursesResponse = await fetch('http://localhost:5000/api/courses');
+          const availableCoursesData = await availableCoursesResponse.json();
+          if (availableCoursesData.success) {
+            setAvailableCourses(availableCoursesData.courses);
+          }
+        } catch (refreshError) {
+          console.error('Error refreshing data after enrollment:', refreshError);
         }
       } else {
         alert(data.message || 'Failed to enroll in course');
@@ -468,7 +518,7 @@ const MyProfile = () => {
             <div className="course-stats">
               <div className="stat">
                 <Users size={16} />
-                <span>{course.enrolledStudents?.length || 0} students</span>
+                <span>{course.enrollmentCount || 0} students</span>
               </div>
               <div className="stat">
                 <Star size={16} />
@@ -488,7 +538,7 @@ const MyProfile = () => {
             </div>
             
             <div className="course-actions">
-              <button className="manage-btn">Manage Course</button>
+              <button className="manage-btn" onClick={() => navigate(`/course/${course._id}`)}>Manage Course</button>
               <button className="edit-btn">
                 <Edit size={16} />
               </button>
@@ -521,21 +571,21 @@ const MyProfile = () => {
         <div className="stat-card">
           <BookOpen size={24} />
           <div>
-            <h3>3</h3>
+            <h3>{learningStats.activeCourses}</h3>
             <p>Active Courses</p>
           </div>
         </div>
         <div className="stat-card">
           <Clock size={24} />
           <div>
-            <h3>89</h3>
+            <h3>{learningStats.learningHours}</h3>
             <p>Learning Hours</p>
           </div>
         </div>
         <div className="stat-card">
           <Award size={24} />
           <div>
-            <h3>5</h3>
+            <h3>{learningStats.certificates}</h3>
             <p>Certificates</p>
           </div>
         </div>
@@ -574,8 +624,8 @@ const MyProfile = () => {
             </div>
             
             <div className="course-actions">
-              <button className="continue-btn">Continue Learning</button>
-              <button className="view-btn">View Details</button>
+              <button className="continue-btn" onClick={() => navigate(`/course/${course._id}`)}>Continue Learning</button>
+              <button className="view-btn" onClick={() => navigate(`/course/${course._id}`)}>View Details</button>
             </div>
           </div>
           ))
@@ -1144,7 +1194,7 @@ const MyProfile = () => {
                           <p>By {course.instructor?.username || 'Unknown'}</p>
                           <div className="course-meta">
                             <span><Star size={14} /> {course.averageRating?.toFixed(1) || 0}</span>
-                            <span><Users size={14} /> {course.enrolledStudents?.length || 0}</span>
+                            <span><Users size={14} /> {course.enrollmentCount || 0}</span>
                             <span><Clock size={14} /> {course.duration?.weeks || 0} weeks</span>
                           </div>
                           <div className="course-price">${course.price}</div>

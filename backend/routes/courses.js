@@ -17,12 +17,12 @@ router.get('/my', protect, async (req, res) => {
       .populate('instructor', 'username email avatar')
       .sort({ createdAt: -1 });
 
-    // Get courses enrolled by user
-    const enrolledCourses = await Course.find({ 
-      'enrolledStudents.student': req.user._id 
-    })
-      .populate('instructor', 'username email avatar')
-      .sort({ createdAt: -1 });
+    // Get courses enrolled by user from User model
+    const user = await User.findById(req.user._id)
+      .populate('enrolledCourses.course', 'title instructor category level price duration image description')
+      .populate('enrolledCourses.course.instructor', 'username email avatar');
+    
+    const enrolledCourses = user.enrolledCourses.map(enrollment => enrollment.course);
 
     res.json({
       success: true,

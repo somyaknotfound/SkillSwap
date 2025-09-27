@@ -29,47 +29,78 @@ const SkillDetail = () => {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isCourse, setIsCourse] = useState(false);
 
   useEffect(() => {
-    const fetchSkill = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/skills/${skillId}`);
-        const data = await response.json();
+        // First try to fetch as a skill
+        let response = await fetch(`http://localhost:5000/api/skills/${skillId}`);
         
-        if (data.success) {
-          setSkill(data.skill);
-          // Check if user is enrolled
-          if (user && data.skill.enrolledStudents?.includes(user._id)) {
-            setIsEnrolled(true);
+        if (response.ok) {
+          let data = await response.json();
+          if (data.success) {
+            setSkill(data.skill);
+            setIsCourse(false);
+            // Check if user is enrolled
+            if (user && data.skill.enrolledStudents?.includes(user._id)) {
+              setIsEnrolled(true);
+            }
+            // Check if user has favorited this skill
+            if (user && data.skill.favoritedBy?.includes(user._id)) {
+              setIsFavorited(true);
+            }
+            return; // Exit early if skill found
           }
-          // Check if user has favorited this skill
-          if (user && data.skill.favoritedBy?.includes(user._id)) {
-            setIsFavorited(true);
-          }
-        } else {
-          setError(data.message || 'Skill not found');
         }
+        
+        // If skill not found (404) or failed, try as a course
+        response = await fetch(`http://localhost:5000/api/courses/${skillId}`);
+        
+        if (response.ok) {
+          let data = await response.json();
+          if (data.success) {
+            setSkill(data.course);
+            setIsCourse(true);
+            // Check if user is enrolled in the course
+            if (user && data.course.enrolledStudents?.includes(user._id)) {
+              setIsEnrolled(true);
+            }
+            return; // Exit early if course found
+          }
+        }
+        
+        // If both failed, set error
+        setError('Content not found');
       } catch (error) {
-        console.error('Error fetching skill:', error);
-        setError('Failed to load skill details');
+        console.error('Error fetching data:', error);
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          setError('Unable to connect to server. Please make sure the backend is running.');
+        } else {
+          setError('Failed to load details');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     if (skillId) {
-      fetchSkill();
+      fetchData();
     }
   }, [skillId, user]);
 
   const handleEnroll = async () => {
     if (!token) {
-      alert('Please log in to enroll in this skill');
+      alert(`Please log in to enroll in this ${isCourse ? 'course' : 'skill'}`);
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/skills/${skillId}/enroll`, {
+      const endpoint = isCourse 
+        ? `http://localhost:5000/api/courses/${skillId}/enroll`
+        : `http://localhost:5000/api/skills/${skillId}/enroll`;
+        
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -79,7 +110,7 @@ const SkillDetail = () => {
       const data = await response.json();
       if (data.success) {
         setIsEnrolled(true);
-        alert('Successfully enrolled in this skill!');
+        alert(`Successfully enrolled in this ${isCourse ? 'course' : 'skill'}!`);
       } else {
         alert(data.message || 'Failed to enroll');
       }
@@ -133,7 +164,7 @@ const SkillDetail = () => {
       <div className="skill-detail-page loading">
         <div className="loading-spinner">
           <div className="spinner"></div>
-          <p>Loading skill details...</p>
+          <p>Loading details...</p>
         </div>
       </div>
     );
@@ -204,7 +235,7 @@ const SkillDetail = () => {
                 <div className="instructor-details">
                   <h3>Instructor: {skill.instructor?.username || 'Unknown'}</h3>
                   <div className="instructor-stats">
-                    <span><Star size={14} /> {skill.instructor?.averageRating?.toFixed(1) || 0}</span>
+                    <span><Star size={14} /> {(Number(skill.instructor?.averageRating) || 0).toFixed(1)}</span>
                     <span><Users size={14} /> {skill.instructor?.totalStudents || 0} students</span>
                     <span><Award size={14} /> {skill.instructor?.totalCourses || 0} courses</span>
                   </div>
@@ -222,7 +253,7 @@ const SkillDetail = () => {
                 <div className="stat">
                   <Users size={20} />
                   <div>
-                    <span className="stat-value">{skill.enrolledStudents?.length || 0}</span>
+                    <span className="stat-value">{skill.students?.length || 0}</span>
                     <span className="stat-label">Students</span>
                   </div>
                 </div>
@@ -257,7 +288,7 @@ const SkillDetail = () => {
                   ) : (
                     <button onClick={handleEnroll} className="btn-primary enroll-btn">
                       <BookOpen size={18} />
-                      Enroll Now
+                      {isCourse ? 'Join Course' : 'Enroll Now'}
                     </button>
                   )}
                   
