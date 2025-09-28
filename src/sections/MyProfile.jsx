@@ -120,6 +120,7 @@ const MyProfile = () => {
           }
         });
         const coursesData = await coursesResponse.json();
+        console.log('Courses data:', coursesData);
         if (coursesData.success) {
           setCourses(coursesData.teachingCourses);
           setEnrolledCourses(coursesData.enrolledCourses);
@@ -564,7 +565,7 @@ const MyProfile = () => {
               </div>
               <div className="stat">
                 <Star size={16} />
-                <span>{course.averageRating?.toFixed(1) || 0} rating</span>
+                <span>{course.rating?.average?.toFixed(1) || 0} rating</span>
               </div>
               <div className="stat">
                 <TrendingUp size={16} />
@@ -1232,7 +1233,7 @@ const MyProfile = () => {
                           <h4>{course.title}</h4>
                           <p>By {course.instructor?.username || 'Unknown'}</p>
                           <div className="course-meta">
-                            <span><Star size={14} /> {course.averageRating?.toFixed(1) || 0}</span>
+                            <span><Star size={14} /> {course.rating?.average?.toFixed(1) || 0}</span>
                             <span><Users size={14} /> {course.enrollmentCount || 0}</span>
                             <span><Clock size={14} /> {course.duration?.weeks || 0} weeks</span>
                           </div>

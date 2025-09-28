@@ -102,6 +102,10 @@
   color: white;
 }
 
+.detail-item span {
+  color: white !important;
+}
+
 .view-transactions-btn {
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);

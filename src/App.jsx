@@ -13,6 +13,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import AuthCallback from './pages/AuthCallback'
 import CourseManagement from './pages/CourseManagement'
+import Leaderboard from './components/Leaderboard'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -21,11 +22,15 @@ function App() {
       <Router>
         <div className="min-h-screen">
           <Navbar />
-          <Routes>
+          <div className="pt-20">
+            <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/skill/:skillId" element={<SkillDetail />} />
             <Route path="/course/:skillId" element={<SkillDetail />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/leaderboard/weekly" element={<Leaderboard />} />
+            <Route path="/leaderboard/monthly" element={<Leaderboard />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
@@ -45,7 +50,16 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-          </Routes>
+            <Route 
+              path="/profile/:userId" 
+              element={
+                <ProtectedRoute>
+                  <MyProfile />
+                </ProtectedRoute>
+              } 
+            />
+            </Routes>
+          </div>
         </div>
       </Router>
     </AuthProvider>
