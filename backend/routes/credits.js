@@ -409,8 +409,8 @@ router.get('/leaderboard', [
       ...dateFilter,
       isActive: true
     })
-      .select('username avatar performance_points badge_level badge_tier badgeDisplayName enrolledCourses')
-      .sort({ performance_points: -1 })
+      .select('username avatar performance_points badge_level badge_tier badgeDisplayName enrolledCourses credits')
+      .sort({ credits: -1 })
       .limit(limit);
 
     const leaderboard = users.map((user, index) => ({
@@ -418,6 +418,7 @@ router.get('/leaderboard', [
       id: user._id,
       username: user.username,
       avatar: user.avatar,
+      credits: user.credits,
       performancePoints: user.performance_points,
       badge: user.badgeDisplayName,
       coursesCompleted: user.enrolledCourses.filter(course => course.completed).length

@@ -24,7 +24,11 @@ router.get('/my', protect, async (req, res) => {
       .populate('enrolledCourses.course', 'title instructor category level price duration image description')
       .populate('enrolledCourses.course.instructor', 'username email avatar');
     
-    const enrolledCourses = user.enrolledCourses.map(enrollment => enrollment.course);
+    const enrolledCourses = user.enrolledCourses.map(enrollment => ({
+      ...enrollment.course.toObject(),
+      progress: enrollment.progress,
+      enrolledAt: enrollment.enrolledAt
+    }));
 
     res.json({
       success: true,

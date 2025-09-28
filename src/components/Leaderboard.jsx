@@ -1,12 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Medal, Award, Crown, Star, Users, Clock, BookOpen } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Trophy, Medal, Award, Crown, Star, Users, Clock, BookOpen, Calendar } from 'lucide-react';
 import Badge from './Badge';
 import './Leaderboard.css';
 
 const Leaderboard = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [leaderboardData, setLeaderboardData] = useState(null);
   const [activeTab, setActiveTab] = useState('alltime');
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Determine active tab based on URL
+    const path = location.pathname;
+    if (path.includes('/weekly')) {
+      setActiveTab('weekly');
+    } else if (path.includes('/monthly')) {
+      setActiveTab('monthly');
+    } else {
+      setActiveTab('alltime');
+    }
+  }, [location]);
 
   useEffect(() => {
     fetchLeaderboardData();
@@ -15,14 +30,21 @@ const Leaderboard = () => {
   const fetchLeaderboardData = async () => {
     try {
       setLoading(true);
+      console.log('Fetching leaderboard data for timeframe:', activeTab);
       const response = await fetch(`http://localhost:5000/api/credits/leaderboard?type=${activeTab}`);
       const data = await response.json();
       
+      console.log('Leaderboard response:', data);
+      
       if (data.success) {
         setLeaderboardData(data.data);
+      } else {
+        console.error('Leaderboard API error:', data.message);
+        setLeaderboardData(null);
       }
     } catch (error) {
       console.error('Error fetching leaderboard data:', error);
+      setLeaderboardData(null);
     } finally {
       setLoading(false);
     }
@@ -54,6 +76,16 @@ const Leaderboard = () => {
     }
   };
 
+  const handleTabClick = (tab) => {
+    if (tab === 'weekly') {
+      navigate('/leaderboard/weekly');
+    } else if (tab === 'monthly') {
+      navigate('/leaderboard/monthly');
+    } else {
+      navigate('/leaderboard');
+    }
+  };
+
   if (loading) {
     return (
       <div className="leaderboard-container">
@@ -77,21 +109,21 @@ const Leaderboard = () => {
         <div className="leaderboard-tabs">
           <button 
             className={`tab ${activeTab === 'weekly' ? 'active' : ''}`}
-            onClick={() => setActiveTab('weekly')}
+            onClick={() => handleTabClick('weekly')}
           >
             <Clock size={16} />
             Weekly
           </button>
           <button 
             className={`tab ${activeTab === 'monthly' ? 'active' : ''}`}
-            onClick={() => setActiveTab('monthly')}
+            onClick={() => handleTabClick('monthly')}
           >
             <Calendar size={16} />
             Monthly
           </button>
           <button 
             className={`tab ${activeTab === 'alltime' ? 'active' : ''}`}
-            onClick={() => setActiveTab('alltime')}
+            onClick={() => handleTabClick('alltime')}
           >
             <Trophy size={16} />
             All Time
@@ -102,22 +134,26 @@ const Leaderboard = () => {
       <div className="leaderboard-content">
         <div className="leaderboard-info">
           <p className="leaderboard-description">
-            {activeTab === 'weekly' && 'Top performers this week based on performance points earned.'}
-            {activeTab === 'monthly' && 'Top performers this month based on performance points earned.'}
-            {activeTab === 'alltime' && 'All-time top performers based on total performance points.'}
+            {activeTab === 'weekly' && 'Top performers this week based on credits earned.'}
+            {activeTab === 'monthly' && 'Top performers this month based on credits earned.'}
+            {activeTab === 'alltime' && 'All-time top performers based on total credits earned.'}
           </p>
           <div className="leaderboard-stats">
             <div className="stat">
               <Users size={16} />
-              <span>{leaderboardData.total} participants</span>
+              <span>{leaderboardData?.total || 0} participants</span>
             </div>
           </div>
         </div>
 
         <div className="leaderboard-list">
-          {leaderboardData.leaderboard.length > 0 ? (
+          {leaderboardData.leaderboard && leaderboardData.leaderboard.length > 0 ? (
             leaderboardData.leaderboard.map((user, index) => (
-              <div key={user.id} className={`leaderboard-item ${index < 3 ? 'top-three' : ''}`}>
+              <Link 
+                key={user.id || index} 
+                to={`/profile/${user.id}`}
+                className={`leaderboard-item ${index < 3 ? 'top-three' : ''}`}
+              >
                 <div className="rank-section">
                   {getRankIcon(user.rank)}
                 </div>
@@ -133,8 +169,8 @@ const Leaderboard = () => {
                     <h4 className="username">{user.username}</h4>
                     <div className="user-badge">
                       <Badge 
-                        level={user.badge.split(' ')[0]} 
-                        tier={user.badge.split(' ')[1] === 'I' ? 1 : user.badge.split(' ')[1] === 'II' ? 2 : 3}
+                        level={user.badge?.split(' ')[0] || 'Bronze'} 
+                        tier={user.badge?.split(' ')[1] === 'I' ? 1 : user.badge?.split(' ')[1] === 'II' ? 2 : 3}
                         size="small"
                         showTooltip={false}
                       />
@@ -145,16 +181,16 @@ const Leaderboard = () => {
                 <div className="stats-section">
                   <div className="stat-item">
                     <Star size={16} />
-                    <span className="stat-value">{user.performancePoints}</span>
-                    <span className="stat-label">Points</span>
+                    <span className="stat-value">{user.credits || 0}</span>
+                    <span className="stat-label">Credits</span>
                   </div>
                   <div className="stat-item">
                     <BookOpen size={16} />
-                    <span className="stat-value">{user.coursesCompleted}</span>
+                    <span className="stat-value">{user.coursesCompleted || 0}</span>
                     <span className="stat-label">Courses</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))
           ) : (
             <div className="empty-state">
