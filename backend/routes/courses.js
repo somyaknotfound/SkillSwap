@@ -2,8 +2,10 @@ const express = require('express');
 const { body, query } = require('express-validator');
 const Course = require('../models/Course');
 const User = require('../models/User');
+const Transaction = require('../models/Transaction');
 const { protect, authorize, checkOwnership } = require('../middleware/auth');
 const { handleValidationErrors, sanitizeInput } = require('../middleware/validation');
+const creditsConfig = require('../config/credits');
 
 const router = express.Router();
 
@@ -201,8 +203,8 @@ router.post('/', [
     .isIn(['beginner', 'intermediate', 'advanced'])
     .withMessage('Invalid level'),
   body('price')
-    .isFloat({ min: 0, max: 10000 })
-    .withMessage('Price must be between 0 and 10000'),
+    .isInt({ min: 1, max: 10000 })
+    .withMessage('Price must be between 1 and 10000 credits'),
   body('duration.weeks')
     .isInt({ min: 1, max: 52 })
     .withMessage('Duration must be between 1 and 52 weeks'),
@@ -265,8 +267,8 @@ router.put('/:id', [
     .withMessage('Invalid level'),
   body('price')
     .optional()
-    .isFloat({ min: 0, max: 10000 })
-    .withMessage('Price must be between 0 and 10000'),
+    .isInt({ min: 1, max: 10000 })
+    .withMessage('Price must be between 1 and 10000 credits'),
   handleValidationErrors
 ], async (req, res) => {
   try {
@@ -342,62 +344,109 @@ router.patch('/:id/publish', [
 // @route   POST /api/courses/:id/enroll
 // @access  Private
 router.post('/:id/enroll', protect, async (req, res) => {
+  const session = await Course.startSession();
+  
   try {
-    const course = await Course.findById(req.params.id);
-    
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: 'Course not found'
-      });
-    }
-
-    if (!course.isEnrollmentOpen) {
-      return res.status(400).json({
-        success: false,
-        message: 'Enrollment is not open for this course'
-      });
-    }
-
-    // Check if already enrolled
-    const user = await User.findById(req.user._id);
-    const isEnrolled = user.enrolledCourses.some(
-      enrollment => enrollment.course.equals(course._id)
-    );
-
-    if (isEnrolled) {
-      return res.status(400).json({
-        success: false,
-        message: 'Already enrolled in this course'
-      });
-    }
-
-    // Enroll user
-    await course.enrollStudent(req.user._id);
-    
-    // Add to user's enrolled courses
-    user.enrolledCourses.push({
-      course: course._id,
-      enrolledAt: new Date()
-    });
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Successfully enrolled in course',
-      course: {
-        id: course._id,
-        title: course.title,
-        instructor: course.instructor
+    await session.withTransaction(async () => {
+      const course = await Course.findById(req.params.id).session(session);
+      
+      if (!course) {
+        throw new Error('Course not found');
       }
+
+      if (!course.isEnrollmentOpen) {
+        throw new Error('Enrollment is not open for this course');
+      }
+
+      // Get user with fresh data
+      const user = await User.findById(req.user._id).session(session);
+      const isEnrolled = user.enrolledCourses.some(
+        enrollment => enrollment.course.equals(course._id)
+      );
+
+      if (isEnrolled) {
+        throw new Error('Already enrolled in this course');
+      }
+
+      // Calculate final credits with badge discount
+      const finalCredits = course.calculateFinalCredits(user.badgeDiscount);
+      
+      // Check if user has enough credits
+      if (user.credits < finalCredits) {
+        throw new Error('Insufficient credits');
+      }
+
+      // Deduct credits from learner
+      await user.deductCredits(finalCredits);
+
+      // Calculate platform fee and tutor earnings
+      const platformFee = Math.floor(finalCredits * (creditsConfig.platformFeePercent / 100));
+      const tutorEarnings = finalCredits - platformFee;
+
+      // Add credits to tutor
+      const tutor = await User.findById(course.instructor).session(session);
+      await tutor.addCredits(tutorEarnings);
+
+      // Create transactions
+      await Transaction.createEnrollmentTransaction(
+        user._id,
+        course._id,
+        finalCredits,
+        0,
+        {
+          originalCredits: course.price,
+          discountApplied: user.badgeDiscount,
+          discountAmount: course.price - finalCredits
+        }
+      );
+
+      await Transaction.createEarningTransaction(
+        tutor._id,
+        course._id,
+        tutorEarnings,
+        platformFee,
+        {
+          learnerId: user._id,
+          platformFeePercent: creditsConfig.platformFeePercent
+        }
+      );
+
+      // Enroll user in course
+      await course.enrollStudent(user._id);
+      
+      // Add to user's enrolled courses
+      user.enrolledCourses.push({
+        course: course._id,
+        enrolledAt: new Date()
+      });
+      await user.save();
+
+      res.json({
+        success: true,
+        message: 'Successfully enrolled in course',
+        course: {
+          id: course._id,
+          title: course.title,
+          instructor: course.instructor
+        },
+        credits: {
+          spent: finalCredits,
+          remaining: user.credits,
+          originalPrice: course.price,
+          discountApplied: user.badgeDiscount,
+          discountAmount: course.price - finalCredits
+        }
+      });
     });
   } catch (error) {
     console.error('Enroll course error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error enrolling in course',
+      message: error.message || 'Error enrolling in course',
       error: error.message
     });
+  } finally {
+    await session.endSession();
   }
 });
 

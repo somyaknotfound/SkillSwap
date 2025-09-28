@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, BookOpen, Users, Award, Clock, Star, TrendingUp, Plus, Edit, Trash2, X, Save, Search } from 'lucide-react';
+import { User, BookOpen, Users, Award, Clock, Star, TrendingUp, Plus, Edit, Trash2, X, Save, Search, Coins } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import Badge from '../components/Badge';
+import Credits from '../components/Credits';
 import './MyProfile.css';
 
 const MyProfile = () => {
@@ -30,7 +32,11 @@ const MyProfile = () => {
     totalSkills: 0,
     teachingHours: 0,
     learningHours: 0,
-    rating: 0
+    rating: 0,
+    credits: 0,
+    performance_points: 0,
+    badge_level: 'Bronze',
+    badge_tier: 3
   };
 
   // Create display name from available fields
@@ -56,7 +62,7 @@ const MyProfile = () => {
     description: '',
     category: 'programming',
     level: 'beginner',
-    price: 0,
+    price: 10,
     duration: {
       weeks: 1
     },
@@ -221,7 +227,7 @@ const MyProfile = () => {
                  description: '', 
                  category: 'programming', 
                  level: 'beginner', 
-                 price: 0, 
+                 price: 10, 
                  duration: { weeks: 1 },
                  image: '',
                  images: [],
@@ -286,7 +292,8 @@ const MyProfile = () => {
       console.log('Response data:', data);
       
       if (data.success) {
-        alert('Successfully enrolled in course!');
+        const creditsInfo = data.credits;
+        alert(`Successfully enrolled in course!\n\nCredits spent: ${creditsInfo.spent}\nCredits remaining: ${creditsInfo.remaining}\n${creditsInfo.discountApplied > 0 ? `Discount applied: ${creditsInfo.discountApplied}% (saved ${creditsInfo.discountAmount} credits)` : ''}`);
         
         // Refresh all data to show updated information
         try {
@@ -526,7 +533,7 @@ const MyProfile = () => {
               </div>
               <div className="stat">
                 <TrendingUp size={16} />
-                <span>${course.price}</span>
+                <span>{course.price} credits</span>
               </div>
             </div>
             
@@ -638,6 +645,68 @@ const MyProfile = () => {
     </div>
   );
 
+  const renderCredits = () => (
+    <div className="credits-content">
+      <div className="content-header">
+        <h2>Credits & Badges</h2>
+        <div className="badge-display">
+          <Badge 
+            level={userProfile.badge_level || 'Bronze'} 
+            tier={userProfile.badge_tier || 3} 
+            size="large"
+          />
+        </div>
+      </div>
+      
+      <div className="credits-overview">
+        <div className="credits-card">
+          <Credits showTransactions={true} />
+        </div>
+        
+        <div className="badge-info">
+          <h3>Badge Information</h3>
+          <div className="badge-details">
+            <div className="badge-level-info">
+              <h4>Current Badge: {userProfile.badge_level || 'Bronze'} {userProfile.badge_tier === 1 ? 'I' : userProfile.badge_tier === 2 ? 'II' : 'III'}</h4>
+              <p>Performance Points: {userProfile.performance_points || 0}</p>
+            </div>
+            
+            <div className="badge-benefits">
+              <h4>Your Benefits</h4>
+              <ul>
+                <li>Course Discount: {userProfile.badge_level === 'Bronze' ? '0%' : 
+                  userProfile.badge_level === 'Silver' ? '5%' :
+                  userProfile.badge_level === 'Gold' ? '10%' :
+                  userProfile.badge_level === 'Platinum' ? '15%' :
+                  userProfile.badge_level === 'Diamond' ? '20%' :
+                  userProfile.badge_level === 'Master' ? '25%' : '30%'} off courses</li>
+                <li>Priority support in community</li>
+                <li>Access to exclusive content</li>
+                <li>Special recognition on leaderboards</li>
+              </ul>
+            </div>
+            
+            <div className="badge-progress">
+              <h4>Next Badge Progress</h4>
+              <div className="progress-info">
+                <p>Keep earning performance points to upgrade your badge!</p>
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill" 
+                    style={{ width: `${Math.min((userProfile.performance_points || 0) / 1000 * 100, 100)}%` }}
+                  ></div>
+                </div>
+                <p className="progress-text">
+                  {userProfile.performance_points || 0} / 1000 points to next upgrade
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="my-profile-page">
       {/* Profile Header */}
@@ -693,6 +762,20 @@ const MyProfile = () => {
                 <p>Rating</p>
               </div>
             </div>
+            <div className="stat">
+              <Coins size={20} />
+              <div>
+                <h3>{userProfile.credits || 0}</h3>
+                <p>Credits</p>
+              </div>
+            </div>
+            <div className="stat">
+              <Award size={20} />
+              <div>
+                <h3>{userProfile.performance_points || 0}</h3>
+                <p>Points</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -722,6 +805,13 @@ const MyProfile = () => {
               <BookOpen size={20} />
               Learning
             </button>
+            <button 
+              className={`nav-tab ${activeTab === 'credits' ? 'active' : ''}`}
+              onClick={() => setActiveTab('credits')}
+            >
+              <Coins size={20} />
+              Credits & Badges
+            </button>
           </div>
         </div>
       </section>
@@ -732,6 +822,7 @@ const MyProfile = () => {
           {activeTab === 'my-skills' && renderMySkills()}
           {activeTab === 'teaching' && renderTeaching()}
           {activeTab === 'learning' && renderLearning()}
+          {activeTab === 'credits' && renderCredits()}
         </div>
       </section>
 
@@ -867,15 +958,16 @@ const MyProfile = () => {
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Price ($)</label>
+                    <label>Price (Credits)</label>
                     <input
                       type="number"
                       value={newCourse.price}
-                      onChange={(e) => setNewCourse({...newCourse, price: parseFloat(e.target.value) || 0})}
-                      placeholder="0"
-                      min="0"
-                      step="0.01"
+                      onChange={(e) => setNewCourse({...newCourse, price: parseInt(e.target.value) || 1})}
+                      placeholder="10"
+                      min="1"
+                      step="1"
                     />
+                    <small className="form-help">Set the course price in credits (minimum 1 credit)</small>
                   </div>
                   <div className="form-group">
                     <label>Duration (weeks)</label>
@@ -1197,7 +1289,7 @@ const MyProfile = () => {
                             <span><Users size={14} /> {course.enrollmentCount || 0}</span>
                             <span><Clock size={14} /> {course.duration?.weeks || 0} weeks</span>
                           </div>
-                          <div className="course-price">${course.price}</div>
+                          <div className="course-price">{course.price} credits</div>
                         </div>
                       </Link>
                       <button className="enroll-btn" onClick={() => handleEnrollCourse(course._id)}>Enroll Now</button>

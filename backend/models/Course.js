@@ -44,14 +44,15 @@ const courseSchema = new mongoose.Schema({
   },
   price: {
     type: Number,
-    required: [true, 'Course price is required'],
-    min: [0, 'Price cannot be negative'],
-    max: [10000, 'Price cannot exceed $10,000']
+    required: [true, 'Course price in credits is required'],
+    min: [1, 'Price must be at least 1 credit'],
+    max: [10000, 'Price cannot exceed 10,000 credits']
   },
+  // Legacy currency field - keeping for backward compatibility but not used
   currency: {
     type: String,
-    default: 'USD',
-    enum: ['USD', 'EUR', 'GBP', 'CAD', 'AUD']
+    default: 'CREDITS',
+    enum: ['CREDITS', 'USD', 'EUR', 'GBP', 'CAD', 'AUD']
   },
   duration: {
     weeks: {
@@ -291,6 +292,16 @@ const courseSchema = new mongoose.Schema({
       type: Number, // in days
       default: 0
     }
+  },
+  // Credits system - price is now in credits, so baseCredits equals price
+  baseCredits: {
+    type: Number,
+    required: [true, 'Base credits is required'],
+    min: [1, 'Base credits must be at least 1'],
+    default: function() {
+      // Since price is now in credits, baseCredits equals price
+      return this.price || 1;
+    }
   }
 }, {
   timestamps: true,
@@ -318,6 +329,17 @@ courseSchema.virtual('isEnrollmentOpen').get(function() {
   if (this.maxEnrollments && this.enrollmentCount >= this.maxEnrollments) return false;
   return true;
 });
+
+// Virtual for final credits with badge discount
+courseSchema.virtual('finalCredits').get(function() {
+  return this.baseCredits;
+});
+
+// Method to calculate final credits with badge discount
+courseSchema.methods.calculateFinalCredits = function(userBadgeDiscount = 0) {
+  const discountAmount = this.baseCredits * (userBadgeDiscount / 100);
+  return Math.max(1, Math.floor(this.baseCredits - discountAmount));
+};
 
 // Indexes for better query performance
 courseSchema.index({ title: 'text', description: 'text', tags: 'text' });

@@ -16,10 +16,14 @@ const userRoutes = require('./routes/users');
 const courseRoutes = require('./routes/courses');
 const skillRoutes = require('./routes/skills');
 const marketplaceRoutes = require('./routes/marketplace');
+const creditsRoutes = require('./routes/credits');
 
 // Import middleware
 const { errorHandler } = require('./middleware/errorHandler');
 const { notFound } = require('./middleware/notFound');
+
+// Import cron jobs
+require('./jobs/weeklyLeaderboard');
 
 const app = express();
 
@@ -68,6 +72,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/credits', creditsRoutes);
 
 // Error handling middleware
 app.use(notFound);
