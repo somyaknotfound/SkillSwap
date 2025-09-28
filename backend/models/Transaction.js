@@ -10,7 +10,7 @@ const transactionSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Transaction type is required'],
     enum: {
-      values: ['enroll', 'purchase', 'cashout', 'onboarding', 'bonus', 'refund', 'earn'],
+      values: ['enroll', 'purchase', 'cashout', 'onboarding', 'bonus', 'refund', 'earn', 'wallet_purchase', 'wallet_transfer', 'admin_fee'],
       message: 'Invalid transaction type'
     }
   },
@@ -138,6 +138,40 @@ transactionSchema.statics.createBonusTransaction = function(userId, amount, reas
       reason: reason
     },
     description: `Bonus: ${reason}`
+  });
+};
+
+// Static method to create wallet purchase transaction
+transactionSchema.statics.createWalletPurchaseTransaction = function(userId, amount, paymentMethod, meta = {}) {
+  return this.create({
+    user: userId,
+    type: 'wallet_purchase',
+    amount_credits: amount,
+    fee_credits: 0,
+    net_credits: amount,
+    meta: {
+      ...meta,
+      paymentMethod: paymentMethod
+    },
+    description: `Purchased ${amount} credits`,
+    status: 'completed'
+  });
+};
+
+// Static method to create admin fee transaction
+transactionSchema.statics.createAdminFeeTransaction = function(adminUserId, amount, courseId, meta = {}) {
+  return this.create({
+    user: adminUserId,
+    type: 'admin_fee',
+    amount_credits: amount,
+    fee_credits: 0,
+    net_credits: amount,
+    meta: {
+      ...meta,
+      courseId: courseId
+    },
+    description: `Platform fee from course`,
+    relatedCourse: courseId
   });
 };
 

@@ -17,6 +17,7 @@ const courseRoutes = require('./routes/courses');
 const skillRoutes = require('./routes/skills');
 const marketplaceRoutes = require('./routes/marketplace');
 const creditsRoutes = require('./routes/credits');
+const courseManagementRoutes = require('./routes/courseManagement');
 
 // Import middleware
 const { errorHandler } = require('./middleware/errorHandler');
@@ -73,6 +74,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/credits', creditsRoutes);
+app.use('/api/courses', courseManagementRoutes);
 
 // Error handling middleware
 app.use(notFound);

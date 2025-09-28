@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Filter, Download, Search, Coins, TrendingUp, Award, DollarSign, Clock, BookOpen } from 'lucide-react';
+import { ArrowLeft, Filter, Download, Search, Coins, TrendingUp, Award, DollarSign, Clock, BookOpen, CreditCard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './Transactions.css';
@@ -70,7 +70,10 @@ const Transactions = () => {
       'bonus': 'Bonus Points',
       'cashout': 'Cashout Request',
       'onboarding': 'Welcome Bonus',
-      'refund': 'Refund'
+      'refund': 'Refund',
+      'wallet_purchase': 'Credit Purchase',
+      'wallet_transfer': 'Wallet Transfer',
+      'admin_fee': 'Platform Fee'
     };
     return typeMap[type] || type;
   };
@@ -89,6 +92,12 @@ const Transactions = () => {
         return <Award className="transaction-icon" />;
       case 'refund':
         return <Coins className="transaction-icon" />;
+      case 'wallet_purchase':
+        return <CreditCard className="transaction-icon" />;
+      case 'wallet_transfer':
+        return <Coins className="transaction-icon" />;
+      case 'admin_fee':
+        return <DollarSign className="transaction-icon" />;
       default:
         return <Coins className="transaction-icon" />;
     }
@@ -97,6 +106,10 @@ const Transactions = () => {
   const formatAmount = (amount, type) => {
     const prefix = ['enroll', 'cashout', 'refund'].includes(type) ? '-' : '+';
     return `${prefix}${amount}`;
+  };
+
+  const formatFiatAmount = (amount) => {
+    return `₹${(amount * 2).toFixed(2)}`;
   };
 
   const formatDate = (dateString) => {
@@ -234,6 +247,9 @@ const Transactions = () => {
                     <div className="transaction-amount">
                       <div className={`amount ${transaction.type === 'enroll' || transaction.type === 'cashout' ? 'negative' : 'positive'}`}>
                         {formatAmount(transaction.net_credits, transaction.type)}
+                      </div>
+                      <div className="fiat-amount">
+                        {formatFiatAmount(transaction.net_credits)}
                       </div>
                       {transaction.fee_credits > 0 && (
                         <div className="fee">
