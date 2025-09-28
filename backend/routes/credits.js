@@ -117,7 +117,45 @@ router.post('/points/award', [
   }
 });
 
-// @desc    Get user's credit balance and transactions
+// @desc    Get user's wallet and credit balance
+// @route   GET /api/credits/wallet
+// @access  Private
+router.get('/wallet', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('credits performance_points badge_level badge_tier badgeDiscount badgeDisplayName wallet');
+
+    const transactions = await Transaction.find({ user: req.user._id })
+      .populate('relatedCourse', 'title')
+      .populate('relatedUser', 'username')
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    res.json({
+      success: true,
+      data: {
+        wallet: user.getWalletSummary(),
+        performancePoints: user.performance_points,
+        badge: {
+          level: user.badge_level,
+          tier: user.badge_tier,
+          displayName: user.badgeDisplayName,
+          discount: user.badgeDiscount
+        },
+        recentTransactions: transactions
+      }
+    });
+  } catch (error) {
+    console.error('Get wallet error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching wallet',
+      error: error.message
+    });
+  }
+});
+
+// @desc    Get user's credit balance and transactions (legacy endpoint)
 // @route   GET /api/credits/balance
 // @access  Private
 router.get('/balance', protect, async (req, res) => {
@@ -215,6 +253,61 @@ router.get('/transactions', [
   }
 });
 
+// @desc    Purchase credits for wallet
+// @route   POST /api/credits/purchase
+// @access  Private
+router.post('/purchase', [
+  protect,
+  sanitizeInput,
+  body('amount')
+    .isInt({ min: 10, max: 10000 })
+    .withMessage('Amount must be between 10 and 10000 credits'),
+  body('paymentMethod')
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage('Payment method cannot exceed 50 characters'),
+  handleValidationErrors
+], async (req, res) => {
+  try {
+    const { amount, paymentMethod = 'card' } = req.body;
+    const user = await User.findById(req.user._id);
+
+    // Purchase credits
+    await user.purchaseCredits(amount, paymentMethod);
+
+    // Create purchase transaction
+    const transaction = await Transaction.createWalletPurchaseTransaction(
+      user._id,
+      amount,
+      paymentMethod,
+      {
+        purchaseAmount: amount,
+        paymentMethod,
+        timestamp: new Date()
+      }
+    );
+
+    res.json({
+      success: true,
+      message: 'Credits purchased successfully',
+      data: {
+        transactionId: transaction._id,
+        amount: amount,
+        newBalance: user.wallet.balance,
+        paymentMethod
+      }
+    });
+  } catch (error) {
+    console.error('Purchase credits error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error purchasing credits',
+      error: error.message
+    });
+  }
+});
+
 // @desc    Request cashout
 // @route   POST /api/credits/cashout
 // @access  Private (instructor or admin)
@@ -259,13 +352,14 @@ router.post('/cashout', [
       {
         paymentMethod,
         fiatAmount,
+        currency: creditsConfig.currency || 'INR',
         creditToFiatRate: creditsConfig.creditToFiatRate
       }
     );
 
     res.json({
       success: true,
-      message: 'Cashout request submitted successfully',
+      message: `Cashout request submitted successfully for ₹${fiatAmount.toFixed(2)} INR`,
       data: {
         transactionId: transaction._id,
         requestedAmount: amount,

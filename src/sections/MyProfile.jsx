@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Badge from '../components/Badge';
 import Credits from '../components/Credits';
+import Wallet from '../components/Wallet';
 import './MyProfile.css';
 
 const MyProfile = () => {
@@ -33,10 +34,16 @@ const MyProfile = () => {
     teachingHours: 0,
     learningHours: 0,
     rating: 0,
-    credits: 0,
+    credits: 100,
     performance_points: 0,
     badge_level: 'Bronze',
-    badge_tier: 3
+    badge_tier: 3,
+    wallet: {
+      balance: 100,
+      totalPurchased: 100,
+      totalSpent: 0,
+      totalEarned: 0
+    }
   };
 
   // Create display name from available fields
@@ -69,7 +76,6 @@ const MyProfile = () => {
     image: '',
     images: [],
     videos: [],
-    testimonials: [],
     requirements: [],
     learningOutcomes: []
   });
@@ -84,11 +90,6 @@ const MyProfile = () => {
   
   // Media upload states
   const [uploadingMedia, setUploadingMedia] = useState(false);
-  const [newTestimonial, setNewTestimonial] = useState({
-    name: '',
-    text: '',
-    rating: 5
-  });
   const [newRequirement, setNewRequirement] = useState('');
   const [newLearningOutcome, setNewLearningOutcome] = useState('');
 
@@ -195,8 +196,34 @@ const MyProfile = () => {
   };
 
   const handleCreateCourse = async () => {
-    if (!newCourse.title.trim() || !newCourse.description.trim()) {
-      alert('Please fill in all required fields');
+    // Validate required fields
+    if (!newCourse.title.trim()) {
+      alert('Please enter a course title');
+      return;
+    }
+    
+    if (!newCourse.description.trim()) {
+      alert('Please enter a course description');
+      return;
+    }
+    
+    if (newCourse.title.length > 100) {
+      alert('Course title cannot exceed 100 characters');
+      return;
+    }
+    
+    if (newCourse.description.length > 2000) {
+      alert('Course description cannot exceed 2000 characters');
+      return;
+    }
+    
+    if (newCourse.price < 1 || newCourse.price > 10000) {
+      alert('Price must be between 1 and 10000 credits');
+      return;
+    }
+    
+    if (newCourse.duration.weeks < 1 || newCourse.duration.weeks > 52) {
+      alert('Duration must be between 1 and 52 weeks');
       return;
     }
 
@@ -207,6 +234,8 @@ const MyProfile = () => {
 
     try {
       console.log('Creating course:', newCourse);
+      console.log('Token:', token ? 'Present' : 'Missing');
+      
       const response = await fetch('http://localhost:5000/api/courses', {
         method: 'POST',
         headers: {
@@ -217,6 +246,8 @@ const MyProfile = () => {
       });
       
       console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
       const data = await response.json();
       console.log('Response data:', data);
       
@@ -232,14 +263,16 @@ const MyProfile = () => {
                  image: '',
                  images: [],
                  videos: [],
-                 testimonials: [],
                  requirements: [],
                  learningOutcomes: []
                });
                setShowCreateCourseModal(false);
                alert('Course created successfully!');
              } else {
-               alert(data.message || 'Failed to create course');
+               const errorMessage = data.errors ? 
+                 `Validation errors:\n${data.errors.join('\n')}` : 
+                 data.message || 'Failed to create course';
+               alert(errorMessage);
              }
     } catch (error) {
       console.error('Error creating course:', error);
@@ -293,7 +326,7 @@ const MyProfile = () => {
       
       if (data.success) {
         const creditsInfo = data.credits;
-        alert(`Successfully enrolled in course!\n\nCredits spent: ${creditsInfo.spent}\nCredits remaining: ${creditsInfo.remaining}\n${creditsInfo.discountApplied > 0 ? `Discount applied: ${creditsInfo.discountApplied}% (saved ${creditsInfo.discountAmount} credits)` : ''}`);
+        alert(`Successfully enrolled in course!\n\nCredits spent: ${creditsInfo.spent} (₹${creditsInfo.spent * 2})\nWallet balance: ${creditsInfo.remaining}\n${creditsInfo.discountApplied > 0 ? `Discount applied: ${creditsInfo.discountApplied}% (saved ${creditsInfo.discountAmount} credits / ₹${creditsInfo.discountAmount * 2})` : ''}`);
         
         // Refresh all data to show updated information
         try {
@@ -320,6 +353,22 @@ const MyProfile = () => {
             learningHours,
             certificates
           });
+        }
+
+        // Refresh wallet data
+        const walletResponse = await fetch('http://localhost:5000/api/credits/wallet', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const walletData = await walletResponse.json();
+        if (walletData.success) {
+          // Update user profile with new wallet data
+          setUserProfile(prev => ({
+            ...prev,
+            wallet: walletData.data.wallet,
+            credits: walletData.data.wallet.balance
+          }));
         }
           
           // Refresh available courses to update enrollment status
@@ -369,20 +418,6 @@ const MyProfile = () => {
     setNewCourse({ ...newCourse, videos: newVideos });
   };
 
-  const addTestimonial = () => {
-    if (newTestimonial.name && newTestimonial.text) {
-      setNewCourse({
-        ...newCourse,
-        testimonials: [...newCourse.testimonials, { ...newTestimonial }]
-      });
-      setNewTestimonial({ name: '', text: '', rating: 5 });
-    }
-  };
-
-  const removeTestimonial = (index) => {
-    const newTestimonials = newCourse.testimonials.filter((_, i) => i !== index);
-    setNewCourse({ ...newCourse, testimonials: newTestimonials });
-  };
 
   const addRequirement = () => {
     if (newRequirement.trim()) {
@@ -545,7 +580,7 @@ const MyProfile = () => {
             </div>
             
             <div className="course-actions">
-              <button className="manage-btn" onClick={() => navigate(`/course/${course._id}`)}>Manage Course</button>
+              <button className="manage-btn" onClick={() => navigate(`/course/${course._id}/manage`)}>Manage Course</button>
               <button className="edit-btn">
                 <Edit size={16} />
               </button>
@@ -765,7 +800,7 @@ const MyProfile = () => {
             <div className="stat">
               <Coins size={20} />
               <div>
-                <h3>{userProfile.credits || 0}</h3>
+                <h3>{userProfile.wallet?.balance || userProfile.credits || 0}</h3>
                 <p>Credits</p>
               </div>
             </div>
@@ -812,6 +847,13 @@ const MyProfile = () => {
               <Coins size={20} />
               Credits & Badges
             </button>
+            <button 
+              className={`nav-tab ${activeTab === 'wallet' ? 'active' : ''}`}
+              onClick={() => setActiveTab('wallet')}
+            >
+              <Coins size={20} />
+              Wallet
+            </button>
           </div>
         </div>
       </section>
@@ -823,6 +865,7 @@ const MyProfile = () => {
           {activeTab === 'teaching' && renderTeaching()}
           {activeTab === 'learning' && renderLearning()}
           {activeTab === 'credits' && renderCredits()}
+          {activeTab === 'wallet' && <Wallet />}
         </div>
       </section>
 
@@ -997,53 +1040,18 @@ const MyProfile = () => {
                 </div>
               </div>
 
-              {/* Media Upload */}
+              {/* Video Links */}
               <div className="form-section">
-                <h4>Additional Media</h4>
-                <div className="media-upload-section">
-                  <div className="upload-group">
-                    <label>Course Images</label>
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="file-input"
-                    />
-                    <div className="image-preview-grid">
-                      {newCourse.images.map((image, index) => (
-                        <div key={index} className="image-preview">
-                          <img src={image} alt={`Preview ${index + 1}`} />
-                          <button type="button" onClick={() => removeImage(index)} className="remove-btn">
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="upload-group">
-                    <label>Course Videos</label>
-                    <input
-                      type="file"
-                      multiple
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="file-input"
-                    />
-                    <div className="video-preview-grid">
-                      {newCourse.videos.map((video, index) => (
-                        <div key={index} className="video-preview">
-                          <video controls>
-                            <source src={video} type="video/mp4" />
-                          </video>
-                          <button type="button" onClick={() => removeVideo(index)} className="remove-btn">
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                <h4>Course Videos</h4>
+                <div className="form-group">
+                  <label>Video Links (comma-separated URLs)</label>
+                  <textarea
+                    value={newCourse.videos.join(', ')}
+                    onChange={(e) => setNewCourse({...newCourse, videos: e.target.value.split(',').map(url => url.trim()).filter(url => url)})}
+                    placeholder="https://youtube.com/watch?v=..., https://vimeo.com/..., https://drive.google.com/file/..."
+                    rows="3"
+                  />
+                  <small className="form-help">Add YouTube, Vimeo, or Google Drive video links. These will be embedded on the course page.</small>
                 </div>
               </div>
 
@@ -1105,67 +1113,6 @@ const MyProfile = () => {
                 </div>
               </div>
 
-              {/* Testimonials */}
-              <div className="form-section">
-                <h4>Student Testimonials</h4>
-                <div className="testimonial-form">
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Student Name</label>
-                      <input
-                        type="text"
-                        value={newTestimonial.name}
-                        onChange={(e) => setNewTestimonial({...newTestimonial, name: e.target.value})}
-                        placeholder="Student name"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Rating</label>
-                      <select
-                        value={newTestimonial.rating}
-                        onChange={(e) => setNewTestimonial({...newTestimonial, rating: parseInt(e.target.value)})}
-                      >
-                        <option value={5}>5 Stars</option>
-                        <option value={4}>4 Stars</option>
-                        <option value={3}>3 Stars</option>
-                        <option value={2}>2 Stars</option>
-                        <option value={1}>1 Star</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label>Testimonial Text</label>
-                    <textarea
-                      value={newTestimonial.text}
-                      onChange={(e) => setNewTestimonial({...newTestimonial, text: e.target.value})}
-                      placeholder="What did the student say about your course?"
-                      rows="3"
-                    />
-                  </div>
-                  <button type="button" onClick={addTestimonial} className="add-testimonial-btn">
-                    <Plus size={16} /> Add Testimonial
-                  </button>
-                </div>
-                
-                <div className="testimonials-list">
-                  {newCourse.testimonials.map((testimonial, index) => (
-                    <div key={index} className="testimonial-item">
-                      <div className="testimonial-header">
-                        <span className="student-name">{testimonial.name}</span>
-                        <div className="rating">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} size={14} className={i < testimonial.rating ? 'filled' : ''} />
-                          ))}
-                        </div>
-                        <button type="button" onClick={() => removeTestimonial(index)} className="remove-btn">
-                          <X size={14} />
-                        </button>
-                      </div>
-                      <p className="testimonial-text">{testimonial.text}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
             <div className="modal-footer">
               <button 

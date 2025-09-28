@@ -18,7 +18,7 @@ const Credits = ({ showTransactions = false, compact = false }) => {
       }
 
       try {
-        const response = await fetch('http://localhost:5000/api/credits/balance', {
+        const response = await fetch('http://localhost:5000/api/credits/wallet', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -105,7 +105,7 @@ const Credits = ({ showTransactions = false, compact = false }) => {
           <div className="credits-info">
             <h3>Credits</h3>
             <div className="credits-balance">
-              <span className="balance-amount">{creditsData.credits}</span>
+              <span className="balance-amount">{creditsData.wallet.balance}</span>
               <span className="balance-label">credits</span>
             </div>
           </div>

@@ -5,7 +5,8 @@ module.exports = {
   platformFeePercent: 2, // 2% platform fee
   minCashoutCredits: 100, // Minimum credits required for cashout
   cashoutFeePercent: 5, // 5% cashout fee
-  creditToFiatRate: 0.01, // 1 credit = $0.01 USD
+  creditToFiatRate: 2, // 1 credit = ₹2 INR
+  currency: 'INR', // Currency code
   
   // Badge thresholds
   badgeThresholds: {

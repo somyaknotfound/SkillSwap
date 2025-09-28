@@ -277,9 +277,9 @@ const SkillDetail = () => {
                 <div className="price-section">
                   {isCourse && user && user.badge_level && user.badge_level !== 'Bronze' ? (
                     <div className="pricing-with-discount">
-                      <div className="original-price">{skill.price} credits</div>
+                      <div className="original-price">{skill.price} credits (₹{skill.price * 2})</div>
                       <div className="discounted-price">
-                        {Math.max(1, Math.floor(skill.price * (1 - (user.badge_level === 'Silver' ? 5 : user.badge_level === 'Gold' ? 10 : user.badge_level === 'Platinum' ? 15 : user.badge_level === 'Diamond' ? 20 : user.badge_level === 'Master' ? 25 : 30) / 100)))} credits
+                        {Math.max(1, Math.floor(skill.price * (1 - (user.badge_level === 'Silver' ? 5 : user.badge_level === 'Gold' ? 10 : user.badge_level === 'Platinum' ? 15 : user.badge_level === 'Diamond' ? 20 : user.badge_level === 'Master' ? 25 : 30) / 100)))} credits (₹{Math.max(1, Math.floor(skill.price * (1 - (user.badge_level === 'Silver' ? 5 : user.badge_level === 'Gold' ? 10 : user.badge_level === 'Platinum' ? 15 : user.badge_level === 'Diamond' ? 20 : user.badge_level === 'Master' ? 25 : 30) / 100))) * 2})
                       </div>
                       <div className="discount-info">
                         <span className="discount-badge">
@@ -292,7 +292,7 @@ const SkillDetail = () => {
                     </div>
                   ) : (
                     <div className="standard-pricing">
-                      <span className="price">{skill.price} credits</span>
+                      <span className="price">{skill.price} credits (₹{skill.price * 2})</span>
                       <span className="price-label">One-time payment</span>
                     </div>
                   )}

@@ -12,6 +12,7 @@ import SkillDetail from './sections/SkillDetail'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import AuthCallback from './pages/AuthCallback'
+import CourseManagement from './pages/CourseManagement'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -33,6 +34,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MyProfile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/course/:courseId/manage" 
+              element={
+                <ProtectedRoute>
+                  <CourseManagement />
                 </ProtectedRoute>
               } 
             />

@@ -83,26 +83,12 @@ const courseSchema = new mongoose.Schema({
     type: String
   }],
   videos: [{
-    title: {
-      type: String,
-      required: true,
-      maxlength: [100, 'Video title cannot exceed 100 characters']
-    },
-    url: {
-      type: String,
-      required: true
-    },
-    duration: {
-      type: Number, // in minutes
-      required: true
-    },
-    isPreview: {
-      type: Boolean,
-      default: false
-    },
-    order: {
-      type: Number,
-      default: 0
+    type: String,
+    validate: {
+      validator: function(v) {
+        return /^https?:\/\/.+/.test(v);
+      },
+      message: 'Video URL must be a valid HTTP/HTTPS URL'
     }
   }],
   curriculum: [{
@@ -187,6 +173,22 @@ const courseSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'Enrollment count cannot be negative']
   },
+  enrolledStudents: [{
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    enrolledAt: {
+      type: Date,
+      default: Date.now
+    },
+    progress: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100
+    }
+  }],
   maxEnrollments: {
     type: Number,
     min: [1, 'Max enrollments must be at least 1']
@@ -298,10 +300,7 @@ const courseSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Base credits is required'],
     min: [1, 'Base credits must be at least 1'],
-    default: function() {
-      // Since price is now in credits, baseCredits equals price
-      return this.price || 1;
-    }
+    default: 10
   }
 }, {
   timestamps: true,
@@ -353,11 +352,17 @@ courseSchema.index({ enrollmentCount: -1 });
 courseSchema.index({ createdAt: -1 });
 courseSchema.index({ featured: -1, featuredUntil: 1 });
 
-// Pre-save middleware to calculate total hours
+// Pre-save middleware to calculate total hours and set baseCredits
 courseSchema.pre('save', function(next) {
   if (this.duration.weeks && this.duration.hoursPerWeek) {
     this.duration.totalHours = this.duration.weeks * this.duration.hoursPerWeek;
   }
+  
+  // Ensure baseCredits equals price
+  if (this.price && !this.baseCredits) {
+    this.baseCredits = this.price;
+  }
+  
   next();
 });
 
@@ -395,9 +400,25 @@ courseSchema.methods.enrollStudent = function(userId) {
     throw new Error('Enrollment is not open for this course');
   }
   
+  // Check if student is already enrolled
+  const existingEnrollment = this.enrolledStudents.find(
+    enrollment => enrollment.student.toString() === userId.toString()
+  );
+  
+  if (existingEnrollment) {
+    throw new Error('Student is already enrolled');
+  }
+  
   if (this.maxEnrollments && this.enrollmentCount >= this.maxEnrollments) {
     throw new Error('Course is full');
   }
+  
+  // Add student to enrolledStudents array
+  this.enrolledStudents.push({
+    student: userId,
+    enrolledAt: new Date(),
+    progress: 0
+  });
   
   this.enrollmentCount += 1;
   return this.save();

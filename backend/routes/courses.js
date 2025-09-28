@@ -215,7 +215,8 @@ router.post('/', [
       ...req.body,
       instructor: req.user._id,
       status: 'published',
-      isPublished: true
+      isPublished: true,
+      baseCredits: req.body.price || 10 // Ensure baseCredits is set
     };
 
     const course = await Course.create(courseData);
@@ -232,6 +233,25 @@ router.post('/', [
     });
   } catch (error) {
     console.error('Create course error:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: validationErrors
+      });
+    }
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Course with this title already exists'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Error creating course',
@@ -371,9 +391,9 @@ router.post('/:id/enroll', protect, async (req, res) => {
       // Calculate final credits with badge discount
       const finalCredits = course.calculateFinalCredits(user.badgeDiscount);
       
-      // Check if user has enough credits
-      if (user.credits < finalCredits) {
-        throw new Error('Insufficient credits');
+      // Check if user has enough credits in wallet
+      if (user.wallet.balance < finalCredits) {
+        throw new Error(`Insufficient credits in wallet. Required: ${finalCredits}, Available: ${user.wallet.balance}`);
       }
 
       // Deduct credits from learner
@@ -386,6 +406,22 @@ router.post('/:id/enroll', protect, async (req, res) => {
       // Add credits to tutor
       const tutor = await User.findById(course.instructor).session(session);
       await tutor.addCredits(tutorEarnings);
+
+      // Add platform fee to admin user (create admin user if doesn't exist)
+      let adminUser = await User.findOne({ role: 'admin' }).session(session);
+      if (!adminUser) {
+        // Create admin user if doesn't exist
+        adminUser = await User.create([{
+          username: 'admin',
+          email: 'admin@skillswap.com',
+          password: 'admin123', // In production, use a secure password
+          role: 'admin',
+          credits: 0,
+          wallet: { balance: 0, totalPurchased: 0, totalSpent: 0, totalEarned: 0 }
+        }]).session(session);
+        adminUser = adminUser[0];
+      }
+      await adminUser.addCredits(platformFee);
 
       // Create transactions
       await Transaction.createEnrollmentTransaction(
@@ -411,6 +447,17 @@ router.post('/:id/enroll', protect, async (req, res) => {
         }
       );
 
+      await Transaction.createAdminFeeTransaction(
+        adminUser._id,
+        platformFee,
+        course._id,
+        {
+          learnerId: user._id,
+          tutorId: tutor._id,
+          platformFeePercent: creditsConfig.platformFeePercent
+        }
+      );
+
       // Enroll user in course
       await course.enrollStudent(user._id);
       
@@ -431,7 +478,7 @@ router.post('/:id/enroll', protect, async (req, res) => {
         },
         credits: {
           spent: finalCredits,
-          remaining: user.credits,
+          remaining: user.wallet.balance,
           originalPrice: course.price,
           discountApplied: user.badgeDiscount,
           discountAmount: course.price - finalCredits

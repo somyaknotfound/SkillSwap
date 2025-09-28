@@ -169,8 +169,30 @@ const userSchema = new mongoose.Schema({
   // Credits and Badges System
   credits: {
     type: Number,
-    default: 0,
+    default: 100, // Give 100 credits initially to all users
     min: [0, 'Credits cannot be negative']
+  },
+  wallet: {
+    balance: {
+      type: Number,
+      default: 100,
+      min: [0, 'Wallet balance cannot be negative']
+    },
+    totalPurchased: {
+      type: Number,
+      default: 0,
+      min: [0, 'Total purchased cannot be negative']
+    },
+    totalSpent: {
+      type: Number,
+      default: 0,
+      min: [0, 'Total spent cannot be negative']
+    },
+    totalEarned: {
+      type: Number,
+      default: 0,
+      min: [0, 'Total earned cannot be negative']
+    }
   },
   performance_points: {
     type: Number,
@@ -254,6 +276,15 @@ userSchema.pre('save', async function(next) {
   }
 });
 
+// Pre-save middleware to ensure credits and wallet balance are in sync
+userSchema.pre('save', function(next) {
+  // If wallet exists, ensure credits field matches wallet balance
+  if (this.wallet && this.wallet.balance !== undefined) {
+    this.credits = this.wallet.balance;
+  }
+  next();
+});
+
 // Instance method to check password
 userSchema.methods.comparePassword = async function(candidatePassword) {
   if (!this.password) return false;
@@ -329,19 +360,45 @@ userSchema.methods.checkBadgeUpgrade = async function() {
   return false;
 };
 
-// Instance method to deduct credits
+// Instance method to deduct credits from wallet
 userSchema.methods.deductCredits = async function(amount) {
-  if (this.credits < amount) {
-    throw new Error('Insufficient credits');
+  if (this.wallet.balance < amount) {
+    throw new Error('Insufficient credits in wallet');
   }
-  this.credits -= amount;
+  this.wallet.balance -= amount;
+  this.wallet.totalSpent += amount;
+  // Keep credits field in sync with wallet balance
+  this.credits = this.wallet.balance;
   return this.save();
 };
 
-// Instance method to add credits
+// Instance method to add credits to wallet
 userSchema.methods.addCredits = async function(amount) {
-  this.credits += amount;
+  this.wallet.balance += amount;
+  this.wallet.totalEarned += amount;
+  // Keep credits field in sync with wallet balance
+  this.credits = this.wallet.balance;
   return this.save();
+};
+
+// Instance method to purchase credits
+userSchema.methods.purchaseCredits = async function(amount, paymentMethod = 'card') {
+  this.wallet.balance += amount;
+  this.wallet.totalPurchased += amount;
+  // Keep credits field in sync with wallet balance
+  this.credits = this.wallet.balance;
+  return this.save();
+};
+
+// Instance method to get wallet summary
+userSchema.methods.getWalletSummary = function() {
+  return {
+    balance: this.wallet.balance,
+    totalPurchased: this.wallet.totalPurchased,
+    totalSpent: this.wallet.totalSpent,
+    totalEarned: this.wallet.totalEarned,
+    credits: this.credits
+  };
 };
 
 module.exports = mongoose.model('User', userSchema);
