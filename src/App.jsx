@@ -22,7 +22,7 @@ function App() {
       <Router>
         <div className="min-h-screen">
           <Navbar />
-          <div className="pt-20">
+          <div className="pt-16">
             <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/marketplace" element={<Marketplace />} />

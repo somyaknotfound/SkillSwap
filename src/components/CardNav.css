@@ -1,6 +1,6 @@
 .card-nav-container {
   position: fixed;
-  top: 1rem;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
@@ -86,7 +86,7 @@
   color: white;
   border: none;
   border-radius: calc(0.75rem - 0.35rem);
-  padding: 0 1rem;
+  padding: 0.5rem 1rem;
   height: 100%;
   font-weight: 500;
   cursor: pointer;
@@ -163,7 +163,7 @@
 @media (max-width: 768px) {
   .card-nav-container {
     width: 95%;
-    top: 0.5rem;
+    top: 0;
   }
 
   .card-nav-top {
